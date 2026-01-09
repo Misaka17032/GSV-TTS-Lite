@@ -35,7 +35,7 @@
 </div>
 
 <div align="center">
-  <img src="https://user.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 </div>
 
 ## About
@@ -59,7 +59,7 @@ For ease of integration, the codebase has been significantly streamlined, with t
 | **RT Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
 | **RT Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
 
-As shown above, **GPT-SoVITS-RT** delivers a **3x–4x speed improvement** while halving VRAM usage! 🚀
+As shown above, **GPT-SoVITS-RT** delivers a **3x ~ 4x** speed improvement while halving VRAM usage! 🚀
 <br>
 
 ## Prerequisites
@@ -104,11 +104,11 @@ from GPT_SoVITS_RT.TTS import TTS
 tts = TTS()
 
 res = tts.infer(
-    spk_audio_path="Raphi\\jp_voice.mp3",
-    prompt_audio_path="anan2Adv17_AnAn001.ogg",
-    prompt_audio_text="Miria is... really stabbed?",
+    spk_audio_path="拉菲\日配.mp3",
+    prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+    prompt_audio_text="ミリアは……本当に刺されているのか？",
     prompt_audio_language="ja",
-    text="Wow, you're doing all this for me?",
+    text="へぇー、ここまでしてくれるんですね",
     text_language="auto",
 )
 
@@ -116,13 +116,13 @@ print(res)
 sd.play(res["audio_data"], res["samplerate"], blocking=True)
 ```
 
-#### 2. Voice Conversion (Voice Cloning)
+#### 2. Voice Conversion
 
 ```python
 res = tts.infer_vc(
-    spk_audio_path="Raphi\\jp_voice.mp3",
-    prompt_audio_path="anan2Adv17_AnAn001.ogg",
-    prompt_audio_text="Miria is... really stabbed?",
+    spk_audio_path="拉菲\日配.mp3",
+    prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+    prompt_audio_text="ミリアは……本当に刺されているのか？",
     prompt_audio_language="ja",
 )
 
@@ -130,7 +130,7 @@ print(res)
 sd.play(res["audio_data"], res["samplerate"], blocking=True)
 ```
 
-#### 3. Streaming Inference (Real-Time Mode)
+#### 3. Streaming Inference
 
 Streaming inference is the core feature of GPT-SoVITS-RT, enabling ultra-low-latency interactive speech synthesis.
 
@@ -162,8 +162,8 @@ class AudioStreamer:
 streamer = AudioStreamer()
 
 stream = sd.OutputStream(
-    samplerate=32000,
-    channels=1,
+    samplerate=32000, 
+    channels=1, 
     callback=streamer.callback,
     dtype='float32'
 )
@@ -173,9 +173,9 @@ while True:
     text = input("infer text: ")
 
     generator = tts.infer_stream(
-        spk_audio_path="Raphi\\jp_voice.mp3",
-        prompt_audio_path="anan2Adv17_AnAn001.ogg",
-        prompt_audio_text="Miria is... really stabbed?",
+        spk_audio_path="拉菲\日配.mp3",
+        prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
+        prompt_audio_text="ミリアは……本当に刺されているのか？",
         prompt_audio_language="ja",
         text=text,
         text_language="auto",
@@ -185,12 +185,11 @@ while True:
         print(audio_data)
         streamer.put(audio_data["audio_data"])
 
-    # Wait until playback finishes
     while not streamer.q.empty() or len(streamer.buffer) > 0:
         sd.sleep(100)
 ```
 
-## Flash Attention Support
+## Flash Attn
 
 For **even lower latency** and **higher throughput**, we strongly recommend enabling **Flash Attention**.
 
