@@ -10,10 +10,12 @@ from pypinyin.converter import UltimateConverter
 from pypinyin.contrib.tone_convert import to_tone
 from .onnx_api import G2PWOnnxConverter
 
+from config import tts_config
 
-CACHE_PATH = r"GPT_SoVITS\pretrained_models\text\zh\polyphonic.pickle"
-PP_DICT_PATH = r"GPT_SoVITS\pretrained_models\text\zh\polyphonic.rep"
-PP_FIX_DICT_PATH = r"GPT_SoVITS\pretrained_models\text\zh\polyphonic-fix.rep"
+
+CACHE_PATH = os.path.join(tts_config.models_dir,r"text\zh\polyphonic.pickle")
+PP_DICT_PATH = os.path.join(tts_config.models_dir,r"text\zh\polyphonic.rep")
+PP_FIX_DICT_PATH = os.path.join(tts_config.models_dir,r"text\zh\polyphonic-fix.rep")
 
 
 class G2PWPinyin(Pinyin):
