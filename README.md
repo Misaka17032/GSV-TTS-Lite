@@ -188,6 +188,44 @@ while True:
         sd.sleep(100)
 ```
 
+<details>
+<summary><strong>4. Other Interface</strong></summary>
+
+### 1. Model Initialization & Loading
+
+#### `init_language_module(languages)`
+Pre-loads the necessary language processing modules.
+
+#### `load_gpt_model(model_paths="pretrained_models/s1v3.ckpt")`
+Loads GPT model weights from the specified paths into memory.
+
+#### `load_sovits_model(model_paths="pretrained_models/v2Pro/s2Gv2ProPlus.pth")`
+Loads SoVITS model weights from the specified paths into memory.
+
+### 2. Model Unloading & Listing
+
+#### `unload_gpt_model(model_paths)` / `unload_sovits_model(model_paths)`
+Unloads models from memory to free up resources.
+
+#### `get_gpt_list()` / `get_sovits_list()`
+Retrieves a list of currently loaded models.
+
+### 3. Audio Cache Management
+
+#### `cache_spk_audio(spk_audio_paths)`
+Processes and caches speaker audio embeddings for voice cloning.
+
+#### `cache_prompt_audio(prompt_audio_list)`
+Pre-processes and caches prompt audio data for faster inference.
+
+#### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_list)`
+Removes audio embeddings from the cache.
+
+#### `get_spk_audio_list()` / `get_prompt_audio_list()`
+Removes audio data from the cache.
+
+</details>
+
 ## Flash Attn
 
 For **even lower latency** and **higher throughput**, we strongly recommend enabling **Flash Attention**.
@@ -204,6 +242,7 @@ Due to compilation complexity, installation must be done manually based on your 
 > After installation, set `use_flash_attn=True` in the TTS configuration to unlock peak performance! 🚀
 
 ## Future Roadmap
+* [ ] WebUI & package
 * [ ] Batch Inference Support
 * [ ] Train New GPT Architectures
 
