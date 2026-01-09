@@ -48,6 +48,8 @@ class Config:
         self.dtype = torch.float16 if is_half else torch.float32
         self.device = infer_device
 
+        self.use_flash_attn = False
+
         self.gpt_cache = None
         self.sovits_cache = None
 
