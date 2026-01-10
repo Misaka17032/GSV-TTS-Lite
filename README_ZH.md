@@ -73,7 +73,7 @@
 ### 安装步骤
 
 > [!IMPORTANT]
-> 确保项目所在的路径是纯英文的。
+> 请确保项目路径中只包含英文字符。
 
 ```bash
 git clone https://github.com/chinokikiss/GPT-SoVITS-RT
