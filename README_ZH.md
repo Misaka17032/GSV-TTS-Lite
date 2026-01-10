@@ -51,7 +51,7 @@
 ## 性能对比 (Performance)
 
 > [!NOTE]
-> **测试环境**：单卡 NVIDIA GeForce RTX 3050 (Laptop)
+> **测试环境**：NVIDIA GeForce RTX 3050 (Laptop)
 
 | 推理后端 (Backend)| 设置 (Settings) | 首包延迟 (TTFT) | 实时率 (RTF) | 显存 (VRAM) | 提升幅度 |
 | :--- | :--- | :---: | :---: | :---: | :--- |
