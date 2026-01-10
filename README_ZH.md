@@ -236,7 +236,7 @@ while True:
 > 安装完成后，在TTS配置中设置 `use_flash_attn=True` 即可享受加速效果！🚀
 
 ## 未来计划 (Future Roadmap)
-* [ ] **网页界面 & 整合包**
+* [ ] **API & WebUI & 整合包**
 * [ ] **批量推理**
 * [ ] **新架构 GPT 模型**
 
