@@ -133,7 +133,7 @@ sd.play(res["audio_data"], res["samplerate"], blocking=True)
 ```
 
 #### 3. 流式推理
-这是 GPT-SoVITS-RT 的核心功能，能够实现极低延迟的实时对话体验。
+这是 GPT-SoVITS-RT 的核心功能，能够实现极低延迟的实时体验。
 ```python
 import queue
 import numpy as np
