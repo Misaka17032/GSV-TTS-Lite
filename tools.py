@@ -41,10 +41,9 @@ class SubtitlesQueue:
             
             if first:
                 t = time.time()
-                time.sleep(subtitles[0]["start_s"])
                 first = False
 
-            for subtitle in subtitles[1:]:
+            for subtitle in subtitles:
                 if subtitle["end_s"]:
                     print(text[last_i:subtitle["orig_idx_end"]], end="", flush=True)
                     last_i = subtitle["orig_idx_end"]
@@ -57,4 +56,5 @@ class SubtitlesQueue:
         self.q.put((subtitles, text))
         if self.t is None:
             self.t = threading.Thread(target=self.process, daemon=True)
+
             self.t.start()
