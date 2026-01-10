@@ -44,14 +44,14 @@ This project was born out of a pursuit for extreme performance. While using the 
 
 To overcome this bottleneck, **GPT-SoVITS-RT** was created — an optimized inference backend built on the **V2Pro** model. Leveraging deep-level optimizations, it achieves **millisecond-level response times**, even on low-VRAM GPUs.
 
-Beyond raw speed, **GPT-SoVITS-RT** introduces **voice-style disentanglement**, allowing independent control over speaker timbre and emotional tone. It also supports advanced features such as **phoneme alignment** and **voice conversion (voice cloning)**.
+Beyond raw speed, **GPT-SoVITS-RT** introduces **voice-style disentanglement**, allowing independent control over speaker timbre and emotional tone. It also supports advanced features such as **phoneme alignment** and **voice conversion**.
 
 For ease of integration, the codebase has been significantly streamlined, with the entire package compressed to just **800MB**.        
 
 ## Performance Comparison
 
 > [!NOTE]
-> **Test Environment**: Single GPU — NVIDIA GeForce RTX 3050 (Laptop)
+> **Test Environment**: NVIDIA GeForce RTX 3050 (Laptop)
 
 | Inference Backend | Settings | TTFT | RTF | VRAM | Speedup |
 | :--- | :--- | :---: | :---: | :---: | :--- |
