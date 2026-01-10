@@ -260,7 +260,6 @@ Due to compilation complexity, installation must be done manually based on your 
 
 Special thanks to the following projects:
 - [RVC-Boss/GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
-- [High-Logic/Genie-TTS](https://github.com/High-Logic/Genie-TTS)
 
 ## ⭐ Star History
 
