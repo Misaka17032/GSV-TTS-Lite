@@ -172,6 +172,7 @@ class TTS:
             logging.info(f"Starting inference for text: '{text[:20]}...'")
         else:
             logging.info(f"Starting inference for text: '{text}'")
+
         prompt_audio_language = self.dict_language[prompt_audio_language]
         text_language = self.dict_language[text_language]
 
@@ -247,6 +248,7 @@ class TTS:
         if max_audio > 1:
             audio = audio / max_audio
         audio = np.concatenate([audio, np.zeros((int(0.2*samplerate),), dtype=audio.dtype)])
+        subtitles[-1]['end_s'] += 0.2
         audio = audio.astype(np.float32)
         
         audio_len_s = len(audio) / samplerate
@@ -276,7 +278,7 @@ class TTS:
         stream_mode: str = "token" or "sentence",
         stream_chunk: int = 25,
         overlap_len: int = 10,
-        boost_first_chunk: bool = False,
+        boost_first_chunk: bool = True,
         top_k: int = 15,
         top_p: float = 1.0,
         temperature: float = 1.0,
@@ -325,6 +327,7 @@ class TTS:
             logging.info(f"Starting Stream inference for text: '{text[:20]}...'")
         else:
             logging.info(f"Starting Stream inference for text: '{text}'")
+
         if stream_mode == "sentence": stream_chunk = 10000
         
         prompt_audio_language = self.dict_language[prompt_audio_language]
@@ -393,7 +396,7 @@ class TTS:
                 top_p=top_p,
                 temperature=temperature,
                 stream_chunk=stream_chunk,
-                boost_first_chunk=boost_first_chunk,
+                boost_first_chunk=boost_first_chunk if i == 0 else False,
                 debug=debug,
             )
 
@@ -493,6 +496,7 @@ class TTS:
         """
 
         logging.info(f"Starting VC inference. Prompt audio: {prompt_audio_path}")
+
         prompt_audio_language = self.dict_language[prompt_audio_language]
 
         if sovits_model is None:
@@ -539,13 +543,14 @@ class TTS:
         subtitles = self.get_subtitles(word2ph, assign, speed)
         subtitles = sub2text_index(subtitles, norm_text, prompt_audio_text)
 
+        samplerate = vq_model.samples_per_frame * vq_model.hz
+
         max_audio = np.abs(audio).max()
         if max_audio > 1:
             audio = audio / max_audio
         audio = np.concatenate([audio, np.zeros((int(0.2*samplerate),), dtype=audio.dtype)])
+        subtitles[-1]['end_s'] += 0.2
         audio = audio.astype(np.float32)
-
-        samplerate = vq_model.samples_per_frame * vq_model.hz
         
         audio_len_s = len(audio) / samplerate
 
