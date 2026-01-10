@@ -118,6 +118,11 @@ sd.play(res["audio_data"], res["samplerate"], blocking=True)
 #### 2. Voice Conversion
 
 ```python
+import sounddevice as sd
+from GPT_SoVITS_RT.TTS import TTS
+
+tts = TTS()
+
 res = tts.infer_vc(
     spk_audio_path="拉菲\日配.mp3",
     prompt_audio_path="anan\0102Adv17_AnAn001.ogg",
@@ -136,6 +141,10 @@ Streaming inference is the core feature of GPT-SoVITS-RT, enabling ultra-low-lat
 ```python
 import queue
 import numpy as np
+import sounddevice as sd
+from GPT_SoVITS_RT.TTS import TTS
+
+tts = TTS()
 
 class AudioStreamer:
     def __init__(self):
