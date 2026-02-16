@@ -3,7 +3,7 @@ import json
 import torch
 import hashlib
 from io import BytesIO
-from safetensors.torch import load_model
+from safetensors.torch import load_model, load_file
 
 from .config import Config
 from .GPT_SoVITS.SoVITS.models import SynthesizerTrn
@@ -111,6 +111,20 @@ def get_gpt_weights(gpt_path, tts_config: Config):
                 t2s_model = Text2SemanticDecoder(config)
         
         t2s_model.to_empty(device=tts_config.device) 
+
+        # 1. 获取模型内存中的 keys
+        model_keys = set(t2s_model.state_dict().keys())
+
+        # 2. 获取 safetensors 文件中的 keys
+        file_path = os.path.join(gpt_path, "model.safetensors")
+        checkpoint_data = load_file(file_path)
+        file_keys = set(checkpoint_data.keys())
+
+        # 3. 进行比较
+        only_in_model = model_keys - file_keys
+        only_in_file = file_keys - model_keys
+        print(only_in_model)
+        print(only_in_file)
         
         load_model(t2s_model, os.path.join(gpt_path, "model.safetensors"))
 
