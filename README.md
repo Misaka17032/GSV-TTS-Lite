@@ -1,13 +1,11 @@
 <div align="center">
-  <a href="https://github.com/chinokikiss/GPT-SoVITS-RT">
+  <a href="https://github.com/chinokikiss/GSV-TTS-Lite">
     <img src="awa.gif" alt="Logo" width="320" height="480">
   </a>
 
-  <h1>GPT-SoVITS-RT</h1>
+  <h1>GSV-TTS-Lite</h1>
 
   <p>
-    🚀 <b>GPT-SoVITS-RealTime</b>
-    <br>
     A high-performance inference engine specifically designed for the GPT-SoVITS text-to-speech model
   </p>
 
