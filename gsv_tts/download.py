@@ -86,9 +86,9 @@ def download_model(filename, zip_filename):
     global base_url
     if base_url is None:
         base_url = get_base_url()
-    if base_url == "https://modelscope.cn/models/chinokiki":
+    if base_url == "https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/":
         url = base_url + filename
-    elif base_url == "https://huggingface.co/cnmds":
+    elif base_url == "https://huggingface.co/cnmds/GPTSoVITS-RT/resolve/main/":
         url = base_url + filename + "?download=true"
 
     download_file(url, zip_filename)
