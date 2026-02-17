@@ -3,7 +3,7 @@ import json
 import torch
 import hashlib
 from io import BytesIO
-from safetensors.torch import load_model
+from safetensors.torch import load_model, load_file
 
 from .config import Config
 from .GPT_SoVITS.SoVITS.models import SynthesizerTrn
@@ -102,8 +102,6 @@ def get_gpt_weights(gpt_path, tts_config: Config):
     if os.path.isdir(gpt_path):
         with open(os.path.join(gpt_path, "config.json"), "r") as f:
             config = json.load(f)
-        
-        print(1)
 
         with torch.device("meta"):
             if tts_config.use_flash_attn:
@@ -112,15 +110,14 @@ def get_gpt_weights(gpt_path, tts_config: Config):
             else:
                 t2s_model = Text2SemanticDecoder(config)
         
-        print(2)
+        model_keys = set(t2s_model.state_dict().keys())
+        file_keys = set(load_file(os.path.join(gpt_path, "model.safetensors"), device="cpu").keys())
+        print(model_keys - file_keys)
+        print(file_keys - model_keys)
         
         t2s_model.to_empty(device=tts_config.device)
-
-        print(3)
         
         load_model(t2s_model, os.path.join(gpt_path, "model.safetensors"))
-
-        print(4)
 
         if tts_config.is_half: t2s_model.half()
     else:
