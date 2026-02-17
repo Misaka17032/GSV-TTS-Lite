@@ -3,11 +3,9 @@
     <img src="awa.gif" alt="Logo" width="320" height="480">
   </a>
 
-  <h1>GPT-SoVITS-RT</h1>
+  <h1>GSV-TTS-Lite</h1>
 
   <p>
-    🚀 <b>GPT-SoVITS-RealTime</b> 
-    <br>
     A high-performance inference engine specifically designed for the GPT-SoVITS text-to-speech model
   </p>
 
@@ -18,8 +16,8 @@
       <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/Python-3.10+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
       </a>
-      <a href="https://github.com/chinokikiss/GPT-SoVITS-RT/stargazers">
-        <img src="https://img.shields.io/github/stars/chinokikiss/GPT-SoVITS-RT?style=for-the-badge&color=yellow&logo=github" alt="GitHub stars">
+      <a href="https://github.com/chinokikiss/GSV-TTS-Lite/stargazers">
+        <img src="https://img.shields.io/github/stars/chinokikiss/GSV-TTS-Lite?style=for-the-badge&color=yellow&logo=github" alt="GitHub stars">
       </a>
   </p>
 
