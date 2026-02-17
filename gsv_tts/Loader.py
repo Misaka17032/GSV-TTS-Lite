@@ -76,7 +76,7 @@ def get_sovits_weights(sovits_path, tts_config: Config):
             **vars(hps.model),
         )
 
-        vq_model.load_state_dict(dict_s2["weight"])
+        vq_model.load_state_dict(dict_s2["weight"], strict=False)
 
         vq_model.dec.remove_weight_norm()
 
