@@ -97,7 +97,7 @@ conda install "ffmpeg"
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 ```
 #### 2. 安装 GSV-TTS-Lite
-若您已准备好上述基础环境，可直接执行以下命令完成集成：
+若已准备好上述基础环境，可直接执行以下命令完成集成：
 ```bash
 pip install gsv-tts-lite --prefer-binary
 ```
