@@ -307,4 +307,4 @@ Special thanks to the following projects:
 
 ## ⭐ Star History
 
-[![Star History Chart]](https://api.star-history.com/svg?repos=chinokikiss/GPT-SoVITS-RT&type=Date)](https://star-history.com/#chinokikiss/GPT-SoVITS-RT&Date)
+[![Star History Chart]](https://api.star-history.com/svg?repos=chinokikiss/GSV-TTS-Lite&type=Date)](https://star-history.com/#chinokikiss/GSV-TTS-Lite&Date)
