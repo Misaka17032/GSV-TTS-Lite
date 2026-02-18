@@ -253,7 +253,7 @@ print("声纹相似度：", similarity)
 <details>
 <summary><strong>6. 其他函数接口</strong></summary>
 
-### 1. 模型初始化与加载
+### 1. 模型管理
 
 #### `init_language_module(languages)`
 预加载必要的语言处理模块。
@@ -264,15 +264,16 @@ print("声纹相似度：", similarity)
 #### `load_sovits_model(model_paths)`
 将 SoVITS 模型权重从指定路径加载到内存中。
 
-### 2. 模型卸载与列表获取
-
 #### `unload_gpt_model(model_paths)` / `unload_sovits_model(model_paths)`
 从内存中卸载模型以释放资源。
 
 #### `get_gpt_list()` / `get_sovits_list()`
 获取当前已加载模型的列表。
 
-### 3. 音频缓存管理
+#### `to_safetensors(checkpoint_path)`
+将 PyTorch 格式的模型权重文件（.pth 或 .ckpt）转换为 safetensors 格式。
+
+### 2. 音频缓存管理
 
 #### `cache_spk_audio(spk_audio_paths)`
 预处理并缓存音色参考音频数据。
@@ -285,9 +286,6 @@ print("声纹相似度：", similarity)
 
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 获取缓存中的音频数据列表。
-
-#### `to_safetensors(checkpoint_path)`
-将 PyTorch 格式的模型权重文件（.pth 或 .ckpt）转换为 safetensors 格式。
 
 </details>
 
