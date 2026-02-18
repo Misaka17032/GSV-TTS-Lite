@@ -87,12 +87,18 @@
 
 ### 安装步骤
 
+#### 1. 环境配置
+建议使用 Python >=3.10 创建虚拟环境，并安装必要的系统依赖 `ffmpeg`。
 ```bash
 conda create -n gsv-tts python=3.11
 conda activate gsv-tts
 conda install "ffmpeg"
 
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+```
+#### 2. 安装 GSV-TTS-Lite
+若您已准备好上述基础环境，可直接执行以下命令完成集成：
+```bash
 pip install gsv-tts-lite --prefer-binary
 ```
 
