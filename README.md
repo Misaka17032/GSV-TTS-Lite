@@ -277,14 +277,17 @@ print("声纹相似度：", similarity)
 #### `cache_spk_audio(spk_audio_paths)`
 预处理并缓存音色参考音频数据。
 
-#### `cache_prompt_audio(prompt_audio_list)`
+#### `cache_prompt_audio(prompt_audio_paths, prompt_audio_texts, prompt_audio_languages)`
 预处理并缓存风格参考音频数据。
 
-#### `del_spk_audio(spk_audio_list)` / `del_prompt_audio(prompt_audio_list)`
+#### `del_spk_audio(spk_audio_paths)` / `del_prompt_audio(prompt_audio_paths)`
 从缓存中移除音频数据。
 
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 获取缓存中的音频数据列表。
+
+#### `to_safetensors`
+将 PyTorch 格式的模型权重文件（.pth 或 .ckpt）转换为 safetensors 格式。
 
 </details>
 
