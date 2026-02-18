@@ -253,7 +253,7 @@ print("Speaker Similarity:", similarity)
 <details>
 <summary><strong>6. Other Function Interfaces</strong></summary>
 
-### 1. Model Initialization and Loading
+### 1. Model Management
 
 #### `init_language_module(languages)`
 Preload necessary language processing modules.
@@ -264,15 +264,16 @@ Load GPT model weights from specified paths into memory.
 #### `load_sovits_model(model_paths)`
 Load SoVITS model weights from specified paths into memory.
 
-### 2. Model Unloading and List Retrieval
-
 #### `unload_gpt_model(model_paths)` / `unload_sovits_model(model_paths)`
 Unload models from memory to free up resources.
 
 #### `get_gpt_list()` / `get_sovits_list()`
 Get the list of currently loaded models.
 
-### 3. Audio Cache Management
+#### `to_safetensors(checkpoint_path)`
+Converts PyTorch checkpoint files (.pth or .ckpt) into the safetensors format.
+
+### 2. Audio Cache Management
 
 #### `cache_spk_audio(spk_audio_paths)`
 Preprocess and cache speaker reference audio data.
@@ -285,9 +286,6 @@ Remove audio data from the cache.
 
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 Get the list of audio data in the cache.
-
-#### `to_safetensors(checkpoint_path)`
-Converts PyTorch checkpoint files (.pth or .ckpt) into the safetensors format.
 
 </details>
 
