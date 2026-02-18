@@ -286,7 +286,7 @@ print("声纹相似度：", similarity)
 #### `get_spk_audio_list()` / `get_prompt_audio_list()`
 获取缓存中的音频数据列表。
 
-#### `to_safetensors`
+#### `to_safetensors(checkpoint_path)`
 将 PyTorch 格式的模型权重文件（.pth 或 .ckpt）转换为 safetensors 格式。
 
 </details>
