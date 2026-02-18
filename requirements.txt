@@ -1,21 +1,18 @@
-jieba
-librosa==0.10.2
 einops
 tqdm
+opencc
 fast_langdetect>=0.3.1
-split-lang
-sounddevice
+torchcodec
 transformers
+sounddevice
+split-lang
+safetensors
+wordsegment
+g2p_en
 cn2an
 pypinyin
-opencc
 jieba_fast
-wordsegment
-onnxruntime; platform_machine == "aarch64" or platform_machine == "arm64"
-onnxruntime-gpu; platform_machine == "x86_64" or platform_machine == "AMD64"
-torchcodec
-pyopenjtalk>=0.4.1
-g2p_en
-g2pk2
-eunjeon
 ToJyutping
+pyopenjtalk>=0.4.1
+jamo
+kiwipiepy
