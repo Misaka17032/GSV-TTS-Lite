@@ -46,7 +46,7 @@
 
 在多语言支持方面，本项目继承了 **中、英、日、韩、粤** 完整的五种语言的合成能力。
 
-为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，且体积被压缩至 **800MB**。
+为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，并已作为 `gsv-tts-lite` 库发布至 PyPI，支持通过 `pip` 一键安装。
 
 ## 性能对比 (Performance)
 
@@ -114,14 +114,14 @@ tts.load_gpt_model()
 tts.load_sovits_model()
 
 
-# infer 是最简单、最原始的推理方式，适用于短句推理，一般不推荐使用。
+# infer 是最简单、最原始的推理方式，适用于短文本推理。
 audio = tts.infer(
     spk_audio_path="examples\laffey.mp3", # 音色参考音频
     prompt_audio_path="examples\AnAn.ogg", # 风格参考音频
-    prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_language="ja",
+    prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。", # 风格参考音频对应的文本
+    prompt_audio_language="ja", # 文本对应的语言
     text="へぇー、ここまでしてくれるんですね。", # 目标生成文本
-    text_language="ja",
+    text_language="ja",  # 文本对应的语言
 )
 
 audio.play()
