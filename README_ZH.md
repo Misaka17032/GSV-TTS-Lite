@@ -40,11 +40,11 @@
 
 本项目诞生的初衷源于对极致性能的追求。我在原版 GPT-SoVITS 的使用过程中，受限于 RTX 3050 (Laptop) 的算力瓶颈，推理延迟往往难以满足实时交互的需求。
 
-为了打破这一限制，**GPT-SoVITS-RT** 应运而生，它是基于 **V2Pro** 模型开发的推理后端。通过一些深度优化技术，本项目成功在低显存环境下实现了毫秒级的实时响应。
+为了打破这一限制，**GSV-TTS-Lite** 应运而生，它是基于 **V2Pro** 模型开发的推理后端。通过一些深度优化技术，本项目成功在低显存环境下实现了毫秒级的实时响应。
 
-除了性能上的飞跃，**GPT-SoVITS-RT** 还实现了**音色与风格的解耦**，支持独立控制说话人的声线与情感，并加入了**音字对齐**与**音色迁移**等特色功能。
+除了性能上的飞跃，**GSV-TTS-Lite** 还实现了**音色与风格的解耦**，支持独立控制说话人的音色与情感，并加入了**字幕时间戳对齐**与**音色迁移**等特色功能。
 
-为了便于开发者集成，**GPT-SoVITS-RT** 大幅精简了代码架构，且体积被压缩至 **800MB**。
+为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，且体积被压缩至 **800MB**。
 
 ## 性能对比 (Performance)
 
@@ -54,40 +54,42 @@
 | 推理后端 (Backend)| 设置 (Settings) | 首包延迟 (TTFT) | 实时率 (RTF) | 显存 (VRAM) | 提升幅度 |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Original** | `streaming_mode=3` | 436 ms | 0.381 | 1.6 GB | - |
-| **RT Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
-| **RT Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
+| **Lite Version** | `Flash_Attn=Off` | 150 ms | 0.125 | **0.8 GB** | ⚡ **2.9x** Speed |
+| **Lite Version** | `Flash_Attn=On` | **133 ms** | **0.108** | **0.8 GB** | 🔥 **3.3x** Speed |
 
-可以看到，**GPT-SoVITS-RT** 实现了 **3x ~ 4x** 速度提升，且显存占用 **减半**！🚀
+可以看到，**GSV-TTS-Lite** 实现了 **3x ~ 4x** 速度提升，且显存占用 **减半**！🚀
 <br>
 
-## 环境准备 (Prerequisites)
+## 整合包下载 (One-click Download)
+
+> [!TIP]
+> 如果你是小白，想要快速体验，可以直接下载我们预配置好的整合包。
+
+- **下载地址**：我是占位符
+- **使用说明**：
+  1. 下载并解压压缩包（建议路径不要包含中文）。
+  2. 双击运行 `run.bat` 即可启动网页推理界面。
+
+## 开发者部署 (Deployment)
+
+### 环境准备
 
 - **Anaconda**
 - **CUDA Toolkit**
 - **Microsoft Visual C++**
 
-## 快速开始 (Quick Start)
-
 ### 安装步骤
 
-> [!IMPORTANT]
-> 请确保项目路径中只包含英文字符。
-
 ```bash
-git clone https://github.com/chinokikiss/GPT-SoVITS-RT
-cd GPT-SoVITS-RT
-
-conda create -n gsv-rt python=3.11
-conda activate gsv-rt
+conda create -n gsv-tts python=3.11
+conda activate gsv-tts
 conda install "ffmpeg"
 
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-pip install -r requirements.txt
+pip install gsv-tts-lite
 ```
 
-### 快速使用
-
-在项目根目录下创建一个 Python 脚本，即可开始体验。
+### 使用教程
 
 > [!TIP]
 > 首次运行时，程序会自动下载所需的预训练模型。
