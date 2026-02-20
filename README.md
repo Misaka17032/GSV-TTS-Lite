@@ -44,8 +44,6 @@
 
 除了性能上的飞跃，**GSV-TTS-Lite** 还实现了**音色与风格的解耦**，支持独立控制说话人的音色与情感，并加入了**字幕时间戳对齐**与**音色迁移**等特色功能。
 
-在多语言支持方面，本项目继承了 **中、英、日、韩、粤** 完整的五种语言的合成能力。
-
 为了便于开发者集成，**GSV-TTS-Lite** 大幅精简了代码架构，并已作为 `gsv-tts-lite` 库发布至 PyPI，支持通过 `pip` 一键安装。
 
 ## 性能对比 (Performance)
@@ -124,9 +122,7 @@ audio = tts.infer(
     spk_audio_path="examples\laffey.mp3", # 音色参考音频
     prompt_audio_path="examples\AnAn.ogg", # 风格参考音频
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。", # 风格参考音频对应的文本
-    prompt_audio_language="ja", # 文本对应的语言
     text="へぇー、ここまでしてくれるんですね。", # 目标生成文本
-    text_language="ja",  # 文本对应的语言
 )
 
 audio.play()
@@ -153,7 +149,6 @@ class SubtitlesQueue:
             subtitles, text = self.q.get()
             
             if subtitles is None:
-                print()
                 break
 
             for subtitle in subtitles:
@@ -186,9 +181,7 @@ generator = tts.infer_stream(
     spk_audio_path="examples\laffey.mp3",
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_language="ja",
     text="へぇー、ここまでしてくれるんですね。",
-    text_language="ja",
     debug=False,
 )
 
@@ -198,6 +191,7 @@ for audio in generator:
 
 tts.audio_queue.wait()
 subtitlesqueue.add(None, None)
+print()
 ```
 
 #### 3. 批量推理
@@ -211,9 +205,7 @@ audios = tts.infer_batched(
     spk_audio_paths="examples\laffey.mp3",
     prompt_audio_paths="examples\AnAn.ogg",
     prompt_audio_texts="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_languages="ja",
     texts=["へぇー、ここまでしてくれるんですね。", "The old map crinkled in Leo’s trembling hands."],
-    texts_language=["ja", "en"],
 )
 
 for i, audio in enumerate(audios):
@@ -231,7 +223,6 @@ audio = tts.infer_vc(
     spk_audio_path="examples\laffey.mp3",
     prompt_audio_path="examples\AnAn.ogg",
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。",
-    prompt_audio_language="ja",
 )
 
 audio.play()
