@@ -12,6 +12,12 @@ from datetime import datetime
 from pedalboard import Pedalboard, Compressor, HighpassFilter, PeakFilter, Reverb, Gain
 import pyloudnorm as pyln
 
+import platform
+if platform.system() == "Windows":
+    import psutil
+    p = psutil.Process(os.getpid())
+    p.nice(psutil.HIGH_PRIORITY_CLASS)
+
 from gsv_tts import TTS, AudioClip
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
@@ -489,12 +495,20 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() == 'true':
+            return True
+        elif v.lower() == 'false':
+            return False
+        
     parser = argparse.ArgumentParser(description="GSV-TTS")
     parser.add_argument("--gpt_cache_len", type=int, default=512, help="GPT KV cache 上下文长度")
     parser.add_argument("--gpt_batch_size", type=int, default=8, help="GPT 最大并行推理大小")
-    parser.add_argument("--use_bert", type=bool, default=True, help="使用BERT提升中文语义理解能力")
-    parser.add_argument("--use_flash_attn", type=bool, default=False, help="使用Flash Attn加速推理")
-    parser.add_argument("--use_asr", type=bool, default=True, help="使用ASR自动识别音频文本")
+    parser.add_argument("--use_bert", type=str2bool, default=True, help="使用BERT提升中文语义理解能力")
+    parser.add_argument("--use_flash_attn", type=str2bool, default=False, help="使用Flash Attn加速推理")
+    parser.add_argument("--use_asr", type=str2bool, default=True, help="使用ASR自动识别音频文本")
     parser.add_argument("--port", type=int, default=9881, help="Gradio 端口号")
     parser.add_argument("--share", action="store_true", help="是否开启公网分享")
     
