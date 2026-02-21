@@ -176,7 +176,7 @@ class SubtitlesQueue:
 
 tts = TTS()
 
-# infer、infer_stream、infer_batched 其实都支持字幕时间戳的返回，这里只是通过 infer_stream 举个例子
+# infer、infer_stream、infer_batched、infer_vc 其实都支持字幕时间戳的返回，这里只是通过 infer_stream 举个例子
 subtitlesqueue = SubtitlesQueue()
 
 # infer_stream 实现了 Token 级别的流式输出，显著降低了首字延迟，能够实现极低延迟的实时反馈体验。
@@ -219,7 +219,7 @@ for i, audio in enumerate(audios):
 ```python
 from gsv_tts import TTS
 
-tts = TTS()
+tts = TTS(always_load_cnhubert=True)
 
 # infer_vc 虽然支持 Few-shot（少样本）音色迁移，在便捷性上有一定优势，但在转换质量上，相较于 RVC、SVC 等专门的变声模型仍有提升空间。
 audio = tts.infer_vc(
