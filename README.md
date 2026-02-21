@@ -71,8 +71,8 @@
   - **显卡需求**：NVIDIA 显卡，显存需 **4GB** 及以上。
   - **显存说明**：默认集成了 `Qwen3-ASR` 模型。若显存不足，可在 `go-webui.bat` 中通过参数禁用 ASR 模块以节省空间。
 - **下载地址**：
-  - [推荐版](https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/gsv-tts-lite-web-nvidia50.zip)
-  - [通用版(兼容旧款 NVIDIA 显卡)](https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/gsv-tts-lite-web.zip)
+  - [推荐版](https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/gsv-tts-lite-web-cu128.zip)
+  - [通用版(兼容旧款 NVIDIA 显卡)](https://modelscope.cn/models/chinokiki/GPTSoVITS-RT/resolve/master/gsv-tts-lite-web-cu118.zip)
 - **使用说明**：
   1. 下载并解压压缩包（建议路径不要包含中文）。
   2. 双击运行 `go-webui.bat` 等待网页推理界面跳出。
