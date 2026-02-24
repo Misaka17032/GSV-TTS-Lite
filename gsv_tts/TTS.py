@@ -28,13 +28,12 @@ from .GPT_SoVITS.SoVITS.module.mel_processing import spectrogram_torch
 from .GPT_SoVITS.G2P import text_to_phonemes
 from .Player import AudioQueue, AudioClip
 from .config import Config, global_config
-from .GPT_SoVITS.G2P import symbol_to_id
 
 
 class TTS:
     def __init__(
         self,
-        gpt_cache: list[tuple[int, int]] = [(1, 500), (4, 500)],
+        gpt_cache: list[tuple[int, int]] = [(1, 512), (1, 1024), (4, 512), (4, 1024)],
         sovits_cache: list[int] = [50],
         models_dir: str = None,
         device: str = None,
@@ -125,7 +124,6 @@ class TTS:
         repetition_penalty: float = 1.35,
         noise_scale: float = 0.5,
         speed: float = 1.0,
-        gpt_cache: int = -1,
         gpt_model: str = None,
         sovits_model: str = None,
     ):
@@ -145,7 +143,6 @@ class TTS:
             repetition_penalty (float, optional): Penalty factor for repetition in the GPT model. Values > 1.0 penalize repetition.
             noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
             speed (float, optional): Speed factor for the generated audio. 1.0 is normal speed, >1.0 is faster, <1.0 is slower.
-            gpt_cache (int, optional): The size of the pre-allocated key-value (KV) cache to use for the GPT model, helping to speed up inference.
             gpt_model (str, optional): The GPT model to use for the inference.
             sovits_model (str, optional): The SoVITS model to use for the inference.
 
@@ -195,7 +192,6 @@ class TTS:
                 all_phoneme_ids,
                 prompt,
                 bert,
-                max_kv_cache=gpt_cache,
                 top_k=top_k,
                 top_p=top_p,
                 temperature=temperature,
@@ -256,14 +252,12 @@ class TTS:
         stream_chunk: int = 25,
         overlap_len: int = 10,
         boost_first_chunk: bool = True,
-        history_size: int = -1,
         top_k: int = 15,
         top_p: float = 1.0,
         temperature: float = 1.0,
         repetition_penalty: float = 1.35,
         noise_scale: float = 0.5,
         speed: float = 1.0,
-        gpt_cache: int = -1,
         gpt_model: str = None,
         sovits_model: str = None,
         debug: str = True,
@@ -287,14 +281,12 @@ class TTS:
             stream_chunk (int, optional): The number of tokens to process in one chunk when using 'token' mode.
             overlap_len (int, optional): The number of overlapping tokens between chunks to ensure smooth audio transitions.
             boost_first_chunk (bool, optional): If True, reduces initial latency but may introduce noise in short audio.
-            history_size (int, optional): The amount of historical context (in terms of characters) to retain from previous segments when processing the current one.
             top_k (int, optional): Sampling parameter for the GPT model. Limits the next token selection to the top K most probable tokens.
             top_p (float, optional): Sampling parameter for the GPT model. Limits the next token selection to a cumulative probability of P.
             temperature (float, optional): Sampling temperature for the GPT model. Higher values make the output more random/expressive; lower values make it more deterministic.
             repetition_penalty (float, optional): Penalty factor for repetition in the GPT model. Values > 1.0 penalize repetition.
             noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
             speed (float, optional): Speed factor for the generated audio. 1.0 is normal speed, >1.0 is faster, <1.0 is slower.
-            gpt_cache (int, optional): The size of the pre-allocated key-value (KV) cache to use for the GPT model, helping to speed up inference.
             gpt_model (str, optional): The GPT model to use for the inference.
             sovits_model (str, optional): The SoVITS model to use for the inference.
             debug (bool, optional): When set to “False”, certain outputs can be suppressed.
@@ -341,8 +333,6 @@ class TTS:
 
             overlap_samples = overlap_len * vq_model.samples_per_frame
 
-            history = {"prompt":None, "phones":None, "bert":None}
-
             cur_text_l = 0
             audio_len_s = 0
             last_end_s = 0
@@ -353,22 +343,13 @@ class TTS:
 
                 phones2, word2ph, bert2, norm_text = get_phones_and_bert(text_cut, self.tts_config)
 
-                phones2[-1] = symbol_to_id['.']
-
-                if history["prompt"] is None:
-                    curr_phoneme_ids = torch.LongTensor(phones1 + phones2).to(self.tts_config.device).unsqueeze(0)
-                    curr_prompt = prompt
-                    curr_bert = torch.cat([bert1, bert2]).unsqueeze(0)
-                else:
-                    curr_phoneme_ids = torch.LongTensor(phones1 + history["phones"] + phones2).to(self.tts_config.device).unsqueeze(0)
-                    curr_prompt = torch.cat([prompt, history["prompt"]], dim=1)
-                    curr_bert = torch.cat([bert1, history["bert"], bert2]).unsqueeze(0)
+                curr_phoneme_ids = torch.LongTensor(phones1 + phones2).to(self.tts_config.device).unsqueeze(0)
+                curr_bert = torch.cat([bert1, bert2]).unsqueeze(0)
                 
                 generator = t2s_model.infer_stream(
                     curr_phoneme_ids,
-                    curr_prompt,
+                    prompt,
                     curr_bert,
-                    max_kv_cache=gpt_cache,
                     top_k=top_k,
                     top_p=top_p,
                     temperature=temperature,
@@ -413,22 +394,6 @@ class TTS:
                     subtitles = self._get_subtitles(word2ph, assign, speed, last_end_s=last_end_s)
 
                     if is_final:
-                        if history_size != -1:
-                            # 取后 history_size 个字对应的prompt、phones、bert
-                            n = sum(word2ph["ph"][-history_size:])
-                            m = sum(word2ph["ph"])
-                            idx = torch.where(assign == m-n)[0]
-                            if idx.shape[0] != 0:
-                                idx = idx[0].item()
-                                k = int((m - idx) / 2)
-                                history["prompt"] = pred_semantic[0, :, -k:]
-                                history["phones"] = phones2[-n:]
-                                history["bert"] = bert2[-n:]
-                            else:
-                                history["prompt"] = None
-                                history["phones"] = None
-                                history["bert"] = None
-
                         tail_offset = self._find_threshold_offsets(audio)
                         audio = audio[:-tail_offset]
                         subtitles[-1]['end_s'] -= tail_offset / self.samplerate
@@ -493,9 +458,7 @@ class TTS:
         repetition_penalty: float = 1.35,
         noise_scale: float = 0.5,
         speed: float = 1.0,
-        gpt_batch_size: int = -1,
-        sovits_batch_size: int = -1,
-        gpt_cache: int = -1,
+        batch_size: int = -1,
         gpt_model: str = None,
         sovits_model: str = None,
     ) -> tuple[AudioClip]:
@@ -521,9 +484,7 @@ class TTS:
             repetition_penalty (float, optional): Penalty factor for repetition in the GPT model. Values > 1.0 penalize repetition.
             noise_scale (float, optional): Controls the standard deviation of the acoustic distribution in the SoVITS decoder. A certain amount of noise can enhance audio naturalness.
             speed (float, optional): Speed factor for the generated audio. 1.0 is normal speed, >1.0 is faster, <1.0 is slower.
-            gpt_batch_size (int, optional): Number of samples to process in one GPT forward pass.
-            sovits_batch_size (int, optional): Number of samples to process in one SoVITS forward pass.
-            gpt_cache (int, optional): The size of the pre-allocated key-value (KV) cache to use for the GPT model, helping to speed up inference.
+            batch_size (int, optional): Number of samples to process in one SoVITS forward pass.
             gpt_model (str, optional): The GPT model to use for the inference.
             sovits_model (str, optional): The SoVITS model to use for the inference.
 
@@ -600,10 +561,8 @@ class TTS:
             orig_texts = texts
             texts = all_segments
 
-            if gpt_batch_size == -1:
-                gpt_batch_size = len(texts)
-            if sovits_batch_size == -1:
-                sovits_batch_size = len(texts)
+            if batch_size == -1:
+                batch_size = len(texts)
 
             logging.info("Processing text to phones and BERT features...")
             all_phoneme_ids = []
@@ -655,8 +614,6 @@ class TTS:
                 all_phoneme_ids,
                 all_prompts,
                 all_bert_features,
-                batch_size=gpt_batch_size,
-                max_kv_cache=gpt_cache,
                 top_k=top_k,
                 top_p=top_p,
                 temperature=temperature,
@@ -686,8 +643,8 @@ class TTS:
             generated_subtitles = []
             num_samples = len(pred_semantic)
 
-            for i in tqdm(range(0, num_samples, sovits_batch_size)):
-                batch_end = min(i + sovits_batch_size, num_samples)
+            for i in tqdm(range(0, num_samples, batch_size)):
+                batch_end = min(i + batch_size, num_samples)
                 
                 semantic_list = pred_semantic[i:batch_end]
                 curr_orig_indices = semantic_orig_idx[i:batch_end]
@@ -753,7 +710,6 @@ class TTS:
                         subtitle[0]["start_s"] += head_offset / self.samplerate
                         subtitle[-1]["end_s"] -= tail_offset / self.samplerate
 
-                        audio = audio.astype(np.float32)
                         generated_audios.append(audio)
                         generated_subtitles.append(subtitle)
                 else:
@@ -767,7 +723,6 @@ class TTS:
                         tail_offset = self._find_threshold_offsets(audio)
                         audio = self._fade(audio[head_offset:-tail_offset]).cpu().numpy()
 
-                        audio = audio.astype(np.float32)
                         generated_audios.append(audio)
 
             logging.info(f"Inference complete. Generated {len(generated_audios)} audio clips.")
@@ -803,6 +758,8 @@ class TTS:
             for audio_list, subtitles_list, norm_text, orig_text in zip(final_ordered_audios, final_ordered_subtitles, ordered_norm_texts, orig_texts):
                 audio = np.concatenate(audio_list)
                 audio_len_s = len(audio) / self.samplerate
+
+                audio = audio.astype(np.float32)
                 
                 if return_subtitles:
                     subtitle = self._cat_subtitles(*subtitles_list)
