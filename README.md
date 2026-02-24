@@ -113,6 +113,8 @@ pip install gsv-tts-lite --prefer-binary
 from gsv_tts import TTS
 
 tts = TTS()
+# tts = TTS(use_bert=True) 如果要获得更优的中文合成效果，建议这样设置
+# tts = TTS(use_flash_attn=True) 如果安装了Flash Attention，建议这样设置
 
 # 将 GPT 模型权重从指定路径加载到内存中，这里加载默认模型。
 tts.load_gpt_model()
@@ -120,16 +122,27 @@ tts.load_gpt_model()
 # 将 SoVITS 模型权重从指定路径加载到内存中，这里加载默认模型。
 tts.load_sovits_model()
 
+# 预加载与缓存资源，可显著减少首次推理的延迟
+# tts.init_language_module("ja")
+# tts.cache_spk_audio("examples\laffey.mp3")
+# tts.cache_prompt_audio(
+#     prompt_audio_paths="examples\AnAn.ogg",
+#     prompt_audio_texts="ちが……ちがう。レイア、貴様は間違っている。",
+# )
+
 # infer 是最简单、最原始的推理方式，适用于短文本推理。
 audio = tts.infer(
     spk_audio_path="examples\laffey.mp3", # 音色参考音频
     prompt_audio_path="examples\AnAn.ogg", # 风格参考音频
     prompt_audio_text="ちが……ちがう。レイア、貴様は間違っている。", # 风格参考音频对应的文本
     text="へぇー、ここまでしてくれるんですね。", # 目标生成文本
+    # gpt_model = None, # 用于推理的GPT模型路径，默认用第一个加载的GPT模型推理
+    # sovits_model = None, # 用于推理的SoVITS模型路径，默认用第一个加载的SoVITS模型推理
 )
 
 audio.play()
 tts.audio_queue.wait()
+# tts.audio_queue.stop() 停止播放
 ```
 
 #### 2. 流式推理 / 字幕同步
@@ -194,7 +207,6 @@ for audio in generator:
 
 tts.audio_queue.wait()
 subtitlesqueue.add(None, None)
-print()
 ```
 
 #### 3. 批量推理
