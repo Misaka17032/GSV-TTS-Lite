@@ -203,36 +203,58 @@ class Text2SemanticDecoder(nn.Module):
         self.ar_text_position.extend_pe(torch.tensor(0.0, dtype=dtype, device=device).expand(1, 4000))
         self.ar_audio_position.extend_pe(torch.tensor(0.0, dtype=dtype, device=device).expand(1, 4000))
 
+        for batch_size, max_kv_cache in gpt_cache:
+            if batch_size in self.cuda_graph_buckets:
+                for i, _max_kv_cache in enumerate(self.cuda_graph_buckets[batch_size]):
+                    if _max_kv_cache > max_kv_cache:
+                        self.cuda_graph_buckets[batch_size].insert(i, max_kv_cache)
+                        break
+                else:
+                    self.cuda_graph_buckets[batch_size].append(max_kv_cache)
+            else:
+                self.cuda_graph_buckets[batch_size] = [max_kv_cache]
+
         s = torch.cuda.Stream()
         s.wait_stream(torch.cuda.current_stream())
 
         with torch.cuda.stream(s):
-            for batch_size, max_kv_cache in gpt_cache:
-                self.cuda_graph_buckets[(batch_size, max_kv_cache)] = Bucket()
-                bucket: Bucket = self.cuda_graph_buckets[(batch_size, max_kv_cache)]
+            for batch_size in self.cuda_graph_buckets:
+                for i in range(-1, -len(self.cuda_graph_buckets[batch_size])-1, -1):
+                    max_kv_cache = self.cuda_graph_buckets[batch_size][i]
 
-                bucket.max_kv_cache = max_kv_cache
-                bucket.batch_size = batch_size
+                    bucket = Bucket()
 
-                bucket.kv_cache_len = torch.zeros((batch_size,), dtype=torch.int64, device=device)
-                bucket.k_cache = torch.zeros((self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
-                bucket.v_cache = torch.zeros((self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
-                bucket.graph_xy_pos = torch.zeros((batch_size, 1, self.model_dim), dtype=dtype, device=device)
+                    bucket.max_kv_cache = max_kv_cache
+                    bucket.batch_size = batch_size
 
-                for _ in range(3):
-                    self.t2s_transformer.decode_next_token(
-                        bucket.graph_xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len
-                    )
+                    if i == -1:
+                        bucket.k_cache = torch.zeros((self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
+                        bucket.v_cache = torch.zeros((self.num_layers, batch_size, max_kv_cache, self.num_head, int(self.model_dim/self.num_head)), dtype=dtype, device=device)
+                        bucket.kv_cache_len = torch.zeros((batch_size,), dtype=torch.int64, device=device)
+                        bucket.graph_xy_pos = torch.zeros((batch_size, 1, self.model_dim), dtype=dtype, device=device)
+                    else:
+                        last_bucket: Bucket = self.cuda_graph_buckets[batch_size][-1]
+                        bucket.k_cache = last_bucket.k_cache[:, :, :max_kv_cache]
+                        bucket.v_cache = last_bucket.v_cache[:, :, :max_kv_cache]
+                        bucket.kv_cache_len = last_bucket.kv_cache_len[:]
+                        bucket.graph_xy_pos = last_bucket.graph_xy_pos[:]
 
-                bucket.kv_cache_len.fill_(0) 
+                    for _ in range(3):
+                        self.t2s_transformer.decode_next_token(
+                            bucket.graph_xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len
+                        )
 
-                torch.cuda.current_stream().synchronize()
+                    bucket.kv_cache_len.fill_(0)
 
-                bucket.cuda_graph = torch.cuda.CUDAGraph()
-                with torch.cuda.graph(bucket.cuda_graph):
-                    bucket.graph_xy_dec = self.t2s_transformer.decode_next_token(
-                        bucket.graph_xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len
-                    )
+                    torch.cuda.current_stream().synchronize()
+
+                    bucket.cuda_graph = torch.cuda.CUDAGraph()
+                    with torch.cuda.graph(bucket.cuda_graph):
+                        bucket.graph_xy_dec = self.t2s_transformer.decode_next_token(
+                            bucket.graph_xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len
+                        )
+                    
+                    self.cuda_graph_buckets[batch_size][i] = bucket
         
         torch.cuda.current_stream().wait_stream(s)
 
@@ -300,22 +322,20 @@ class Text2SemanticDecoder(nn.Module):
         B, device = x.shape[0], x.device
 
         # 音素可以关注自身(双向),但不能关注音频 音频可以关注自身(因果),也能关注音素(双向)
-        xy_len = x_len + y_len
         x_attn_mask = F.pad(
             torch.ones((x_len, x_len), dtype=torch.bool),
             (0, y_len),
             value=False,
         )
         y_attn_mask = F.pad(
-            torch.tril(torch.ones(y_len, y_len, dtype=torch.bool)),
+            torch.tril(torch.ones((y_len, y_len), dtype=torch.bool)),
             (x_len, 0),
             value=True,
         )
         prompt_attn_mask = (
             torch.concat([x_attn_mask, y_attn_mask], dim=0)
-            .unsqueeze(0)
-            .expand(B * self.num_head, -1, -1)
-            .view(B, self.num_head, xy_len, xy_len)
+            .unsqueeze(0).unsqueeze(0)
+            .expand(B, self.num_head, -1, -1)
             .to(device=device, dtype=torch.bool)
         )
         
@@ -327,7 +347,6 @@ class Text2SemanticDecoder(nn.Module):
         x: torch.LongTensor,
         y: torch.LongTensor,
         bert_feature: torch.LongTensor,
-        max_kv_cache: int = -1,
         top_k: int = 15,
         top_p: int = 1.0,
         temperature: float = 1.0,
@@ -335,16 +354,14 @@ class Text2SemanticDecoder(nn.Module):
     ):
         xy_pos, prompt_attn_mask = self.process_single_data(x, y, bert_feature)
 
-        if (1, max_kv_cache) not in self.cuda_graph_buckets:
-            available = next((k for k in self.cuda_graph_buckets if k[0] == 1), None)
-            bucket: Bucket = self.cuda_graph_buckets[available]
-            max_kv_cache = bucket.max_kv_cache
-        else:
-            bucket: Bucket = self.cuda_graph_buckets[(1, max_kv_cache)]
+        buckets = self.cuda_graph_buckets[1] # B = 1
+        bucket_i = 0
+        bucket: Bucket = buckets[bucket_i]
+        last_bucket: Bucket = buckets[-1]
 
-        bucket.kv_cache_len.fill_(0)
-        bucket.k_cache.fill_(0)
-        bucket.v_cache.fill_(0)
+        last_bucket.kv_cache_len.fill_(0)
+        last_bucket.k_cache.fill_(0)
+        last_bucket.v_cache.fill_(0)
 
         pe_cache = self.ar_audio_position.alpha * self.ar_audio_position.pe
         pe_cache = pe_cache.transpose(0, 1)
@@ -358,7 +375,11 @@ class Text2SemanticDecoder(nn.Module):
         y_emb = self.ar_audio_embedding(samples)
         xy_pos = y_emb * self.ar_audio_position.x_scale + pe_cache[bucket.kv_cache_len]
         
-        for idx in tqdm(range(1, bucket.max_kv_cache - bucket.kv_cache_len + 1)):
+        for idx in tqdm(range(1, last_bucket.max_kv_cache - bucket.kv_cache_len + 1)):
+            if bucket.kv_cache_len == bucket.max_kv_cache:
+                bucket_i += 1
+                bucket: Bucket = buckets[bucket_i]
+            
             bucket.graph_xy_pos.copy_(xy_pos)
             bucket.cuda_graph.replay()
             xy_dec = bucket.graph_xy_dec.clone()
@@ -385,7 +406,6 @@ class Text2SemanticDecoder(nn.Module):
         x: torch.LongTensor,
         y: torch.LongTensor,
         bert_feature: torch.LongTensor,
-        max_kv_cache: int = -1,
         top_k: int = 15,
         top_p: int = 1.0,
         temperature: float = 1.0,
@@ -396,16 +416,14 @@ class Text2SemanticDecoder(nn.Module):
     ):
         xy_pos, prompt_attn_mask = self.process_single_data(x, y, bert_feature)
 
-        if (1, max_kv_cache) not in self.cuda_graph_buckets:
-            available = next((k for k in self.cuda_graph_buckets if k[0] == 1), None)
-            bucket: Bucket = self.cuda_graph_buckets[available]
-            max_kv_cache = bucket.max_kv_cache
-        else:
-            bucket: Bucket = self.cuda_graph_buckets[(1, max_kv_cache)]
+        buckets = self.cuda_graph_buckets[1] # B = 1
+        bucket_i = 0
+        bucket: Bucket = buckets[bucket_i]
+        last_bucket: Bucket = buckets[-1]
 
-        bucket.kv_cache_len.fill_(0)
-        bucket.k_cache.fill_(0)
-        bucket.v_cache.fill_(0)
+        last_bucket.kv_cache_len.fill_(0)
+        last_bucket.k_cache.fill_(0)
+        last_bucket.v_cache.fill_(0)
 
         pe_cache = self.ar_audio_position.alpha * self.ar_audio_position.pe
         pe_cache = pe_cache.transpose(0, 1)
@@ -421,7 +439,11 @@ class Text2SemanticDecoder(nn.Module):
         
         first_chunk = True
         pre_chunk = None
-        for idx in tqdm(range(1, bucket.max_kv_cache - bucket.kv_cache_len + 1), disable=not debug):
+        for idx in tqdm(range(1, last_bucket.max_kv_cache - bucket.kv_cache_len + 1), disable=not debug):
+            if bucket.kv_cache_len == bucket.max_kv_cache:
+                bucket_i += 1
+                bucket: Bucket = buckets[bucket_i]
+            
             bucket.graph_xy_pos.copy_(xy_pos)
             bucket.cuda_graph.replay()
             xy_dec = bucket.graph_xy_dec.clone()
@@ -459,8 +481,6 @@ class Text2SemanticDecoder(nn.Module):
         x: List[torch.LongTensor],
         y: List[torch.LongTensor],
         bert_feature: List[torch.LongTensor],
-        batch_size: int = -1,
-        max_kv_cache: int = -1,
         top_k: int = 15,
         top_p: int = 1.0,
         temperature: float = 1.0,
@@ -468,22 +488,19 @@ class Text2SemanticDecoder(nn.Module):
     ):
         B, device = len(x), x[0].device
         
-        if (batch_size, max_kv_cache) not in self.cuda_graph_buckets:
-            max_b = 0
-            for k in self.cuda_graph_buckets:
-                if k[0] <= B and k[0] > max_b:
-                    max_b = k[0]
-                    best = k
-                    
-            bucket: Bucket = self.cuda_graph_buckets[best]
-            batch_size = bucket.batch_size
-            max_kv_cache = bucket.max_kv_cache
-        else:
-            bucket: Bucket = self.cuda_graph_buckets[(batch_size, max_kv_cache)]
-
-        bucket.kv_cache_len.fill_(0)
-        bucket.k_cache.fill_(0)
-        bucket.v_cache.fill_(0)
+        batch_size = 0
+        for b in self.cuda_graph_buckets:
+            if b <= B and b > batch_size:
+                batch_size = b
+        
+        buckets = self.cuda_graph_buckets[batch_size]
+        bucket_i = 0
+        bucket: Bucket = buckets[bucket_i]
+        last_bucket: Bucket = buckets[-1]
+            
+        last_bucket.kv_cache_len.fill_(0)
+        last_bucket.k_cache.fill_(0)
+        last_bucket.v_cache.fill_(0)
 
         batch_indices = torch.arange(batch_size, dtype=torch.int64, device=device)
         
@@ -507,7 +524,7 @@ class Text2SemanticDecoder(nn.Module):
         pe_cache = self.ar_audio_position.alpha * self.ar_audio_position.pe
         pe_cache = pe_cache.transpose(0, 1)
 
-        pre_tokens = torch.zeros((batch_size, max_kv_cache), dtype=torch.int64, device=device)
+        pre_tokens = torch.zeros((batch_size, last_bucket.max_kv_cache), dtype=torch.int64, device=device)
         pre_tokens[:, :y_lens.max()] = batch_y
 
 
@@ -528,66 +545,82 @@ class Text2SemanticDecoder(nn.Module):
         batch_orig_idx = torch.linspace(0, batch_size-1, batch_size, dtype=torch.int64, device=device)
         decode_steps = torch.zeros(batch_size, dtype=torch.int64, device=device)
         ignore_batch = torch.zeros(batch_size, dtype=torch.bool, device=device)
-        for idx in tqdm(range(1500)):
-            decode_steps += 1
+        while True:
+            for idx in tqdm(range(1000)):
+                decode_steps += 1
 
-            bucket.graph_xy_pos.copy_(xy_pos)
-            bucket.cuda_graph.replay()
-            xy_dec = bucket.graph_xy_dec.clone()
+                bucket.graph_xy_pos.copy_(xy_pos)
+                bucket.cuda_graph.replay()
+                xy_dec = bucket.graph_xy_dec.clone()
 
-            # xy_dec = self.t2s_transformer.decode_next_token(xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len)
+                # xy_dec = self.t2s_transformer.decode_next_token(xy_pos, bucket.k_cache, bucket.v_cache, bucket.kv_cache_len)
 
-            logits = self.ar_predict_layer(xy_dec[:, -1])
+                logits = self.ar_predict_layer(xy_dec[:, -1])
 
-            samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
-            
-            eos_in_current_step = (samples[:, 0] == self.EOS) | (bucket.kv_cache_len == max_kv_cache)
-            finished = (~ignore_batch) & eos_in_current_step
-
-            if finished.any():
-                finished_indices = torch.where(finished)[0]
-                for i in finished_indices.tolist():
-                    pred_semantic.append(pre_tokens[i, bucket.kv_cache_len[i]-decode_steps[i] : bucket.kv_cache_len[i]].clone())
-                    semantic_orig_idx.append(batch_orig_idx[i].clone())
-                    decode_steps[i] = 0
-                    
-                    if current_batch == B:
-                        bucket.kv_cache_len[i] = 0
-                        ignore_batch[i] = True
-                        if ignore_batch.all():
-                            stop = True
-                            break
-                    else:
-                        single_x = x[current_batch]
-                        single_y = y[current_batch]
-                        single_bert_feature = bert_feature[current_batch]
-
-                        xy_pos, prompt_attn_mask = self.process_single_data(
-                            single_x.unsqueeze(0),
-                            single_y.unsqueeze(0),
-                            single_bert_feature.unsqueeze(0),
-                        )
-
-                        xy_dec = self.t2s_transformer.process_prompt(xy_pos, bucket.k_cache[:, i:i+1], bucket.v_cache[:, i:i+1], bucket.kv_cache_len[i:i+1], prompt_attn_mask)
-                        logits = self.ar_predict_layer(xy_dec[:, -1])
-
-                        bucket.kv_cache_len[i].copy_(single_x.shape[0] + single_y.shape[0])
-                        pre_tokens[i].fill_(0)
-                        pre_tokens[i, :single_y.shape[0]] = single_y
-
-                        new_samples = sample(logits, pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
-                        samples[i:i+1] = new_samples
-
-                        batch_orig_idx[i] = current_batch
-                        current_batch += 1
+                samples = sample(logits, pre_tokens, top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
                 
-                if stop:
-                    break
-            
-            pre_tokens[batch_indices, bucket.kv_cache_len] = samples.squeeze()
+                is_reached = bucket.kv_cache_len == bucket.max_kv_cache
+                if is_reached.any():
+                    bucket_i += 1
+                    if bucket_i < len(buckets):
+                        is_reached.fill_(False)
+                        bucket: Bucket = buckets[bucket_i]
+                
+                eos_in_current_step = (samples[:, 0] == self.EOS) | is_reached
+                finished = (~ignore_batch) & eos_in_current_step
 
-            y_emb = self.ar_audio_embedding(samples)
-            xy_pos = y_emb * self.ar_audio_position.x_scale + pe_cache[bucket.kv_cache_len]
+                if finished.any():
+                    finished_indices = torch.where(finished)[0]
+                    for i in finished_indices.tolist():
+                        pred_semantic.append(pre_tokens[i, bucket.kv_cache_len[i]-decode_steps[i] : bucket.kv_cache_len[i]].clone())
+                        semantic_orig_idx.append(batch_orig_idx[i].clone())
+                        decode_steps[i] = 0
+
+                        bucket.kv_cache_len[i].fill_(0)
+                        max_kv_cache_len = bucket.kv_cache_len.max()
+                        for bucket_i in range(len(buckets)):
+                            if buckets[bucket_i].max_kv_cache > max_kv_cache_len:
+                                break
+                        bucket: Bucket = buckets[bucket_i]
+                        
+                        if current_batch == B:
+                            ignore_batch[i] = True
+                            if ignore_batch.all():
+                                stop = True
+                                break
+                        else:
+                            single_x = x[current_batch]
+                            single_y = y[current_batch]
+                            single_bert_feature = bert_feature[current_batch]
+
+                            _xy_pos, prompt_attn_mask = self.process_single_data(
+                                single_x.unsqueeze(0),
+                                single_y.unsqueeze(0),
+                                single_bert_feature.unsqueeze(0),
+                            )
+
+                            xy_dec = self.t2s_transformer.process_prompt(_xy_pos, bucket.k_cache[:, i:i+1], bucket.v_cache[:, i:i+1], bucket.kv_cache_len[i:i+1], prompt_attn_mask)
+                            logits = self.ar_predict_layer(xy_dec[:, -1])
+
+                            bucket.kv_cache_len[i].copy_(single_x.shape[0] + single_y.shape[0])
+                            pre_tokens[i].fill_(0)
+                            pre_tokens[i, :single_y.shape[0]] = single_y
+
+                            new_samples = sample(logits, pre_tokens[i:i+1], top_k=top_k, top_p=top_p, repetition_penalty=repetition_penalty, temperature=temperature)[0]
+                            samples[i:i+1] = new_samples
+
+                            batch_orig_idx[i] = current_batch
+                            current_batch += 1
+                    
+                    if stop:
+                        break
+                
+                pre_tokens[batch_indices, bucket.kv_cache_len] = samples.squeeze()
+                y_emb = self.ar_audio_embedding(samples)
+                xy_pos = y_emb * self.ar_audio_position.x_scale + pe_cache[bucket.kv_cache_len]
+            
+            if stop:
+                break
 
         semantic_orig_idx = torch.tensor(semantic_orig_idx, device=device)
         return pred_semantic, semantic_orig_idx
